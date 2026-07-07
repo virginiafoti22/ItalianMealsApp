@@ -1,3 +1,32 @@
+/*import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import * as Linking from "expo-linking";
+import { HomeScreen } from "./src/screens/HomeScreen";
+import { DetailsScreen } from "./src/screens/DetailsScreen";
+
+const Stack = createNativeStackNavigator();
+
+const linking = {
+  prefixes: [Linking.createURL("/"), "myapp://"],
+  config: {
+    screens: {
+      Home: "home",
+      Details: "details/:id",
+    },
+  },
+};
+
+export default function App() {
+  return (
+    <NavigationContainer linking={linking}>
+      <Stack.Navigator>
+        <Stack.Screen name="Home" component={HomeScreen} options={{ title: "Items" }} />
+        <Stack.Screen name="Details" component={DetailsScreen} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}*/
+
 import React from "react";
 import {
   ActivityIndicator,
@@ -6,11 +35,11 @@ import {
   Pressable,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import { fetchItalianMeals } from "./services/mealsApi";
-import { loadFavoriteIds, saveFavoriteIds } from "./services/storage";
+import { fetchItalianMeals } from "./src/services/mealsApi";
 
 interface MealSummary {
   idMeal: string;
@@ -18,7 +47,11 @@ interface MealSummary {
   strMealThumb: string;
 }
 
+const SPACING = { sm: 4, md: 8, lg: 16 };
+
 export default function App() {
+  const { width } = useWindowDimensions();
+  const isWide = width >= 300;
   const [state, setState] = React.useState<{
     status: "idle" | "loading" | "success" | "error";
     items: MealSummary[];
@@ -28,14 +61,6 @@ export default function App() {
     items: [],
     message: "",
   });
-  const [favoriteIds, setFavoriteIds] = React.useState<string[]>([]);
-  const [favoritesLoaded, setFavoritesLoaded] = React.useState(false);
-
-  React.useEffect(() => {
-    loadFavoriteIds()
-      .then(setFavoriteIds)
-      .finally(() => setFavoritesLoaded(true));
-  }, []);
 
   async function loadMeals() {
     setState({ status: "loading", items: [], message: "" });
@@ -55,22 +80,12 @@ export default function App() {
     loadMeals();
   }, []);
 
-  function toggleFavorite(idMeal: string) {
-    setFavoriteIds((current) => {
-      const next = current.includes(idMeal)
-        ? current.filter((id) => id !== idMeal)
-        : [...current, idMeal];
-      void saveFavoriteIds(next);
-      return next;
-    });
-  }
-
-  if (!favoritesLoaded || state.status === "loading") {
+  if (state.status === "loading") {
     return (
       <SafeAreaProvider>
         <SafeAreaView style={styles.centered}>
           <ActivityIndicator />
-          <Text>Caricamento...</Text>
+          <Text>Caricamento piatti italiani...</Text>
         </SafeAreaView>
       </SafeAreaProvider>
     );
@@ -93,30 +108,22 @@ export default function App() {
     <SafeAreaProvider>
       <SafeAreaView style={styles.container}>
         <Text style={styles.title}>Piatti italiani</Text>
-        <Text style={styles.subtitle}>
-          Preferiti salvati: {favoriteIds.length} (chiave app:v1:favs)
-        </Text>
+        <Text style={styles.subtitle}>Colonne: {isWide ? 2 : 1}</Text>
         <FlatList
+          key={isWide ? "wide" : "narrow"}
           data={state.items}
+          numColumns={isWide ? 2 : 1}
           keyExtractor={(item) => item.idMeal}
-          contentContainerStyle={{ gap: 4 }}
-          renderItem={({ item }) => {
-            const active = favoriteIds.includes(item.idMeal);
-            return (
-              <View style={styles.row}>
-                <Image source={{ uri: item.strMealThumb }} style={styles.thumb} />
-                <Text style={styles.mealName} numberOfLines={2}>
-                  {item.strMeal}
-                </Text>
-                <Pressable
-                  style={styles.favButton}
-                  onPress={() => toggleFavorite(item.idMeal)}
-                >
-                  <Text style={styles.favText}>{active ? "♥" : "♡"}</Text>
-                </Pressable>
-              </View>
-            );
-          }}
+          columnWrapperStyle={isWide ? styles.wideRow : undefined}
+          contentContainerStyle={{ gap: SPACING.sm }}
+          renderItem={({ item }) => (
+            <View style={[styles.card, isWide && styles.cardWide]}>
+              <Image source={{ uri: item.strMealThumb }} style={styles.thumb} />
+              <Text style={styles.mealName} numberOfLines={3}>
+                {item.strMeal}
+              </Text>
+            </View>
+          )}
         />
       </SafeAreaView>
     </SafeAreaProvider>
@@ -124,30 +131,28 @@ export default function App() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
-  centered: { flex: 1, padding: 16, gap: 8, justifyContent: "center" },
+  container: { flex: 1, padding: SPACING.lg, gap: SPACING.md },
+  centered: { flex: 1, padding: SPACING.lg, gap: SPACING.sm, justifyContent: "center" },
   title: { fontSize: 22, fontWeight: "700" },
   subtitle: { color: "#555" },
   error: { color: "#B00020" },
   button: {
     alignSelf: "flex-start",
     paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingHorizontal: SPACING.lg,
     borderWidth: 1,
     borderRadius: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#ffffff",
   },
   buttonText: { fontWeight: "600" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
+  wideRow: { gap: SPACING.md },
+  card: {
+    padding: SPACING.md,
+    borderWidth: 1,
+    borderRadius: 8,
+    gap: SPACING.sm,
   },
-  thumb: { width: 48, height: 48, borderRadius: 8 },
-  mealName: { flex: 1, fontWeight: "600" },
-  favButton: { padding: 8, borderWidth: 1, borderRadius: 8 },
-  favText: { fontSize: 18 },
+  cardWide: { flex: 1 },
+  thumb: { width: "100%", height: 120, borderRadius: 8 },
+  mealName: { fontWeight: "600" },
 });
