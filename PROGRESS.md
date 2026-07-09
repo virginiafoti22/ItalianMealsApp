@@ -1,7 +1,7 @@
 # Progress - Italian Meals App
 
-**Studente:** Nome Cognome  
-**Repo:** https://github.com/tuo-utente/italian-meals-app  
+**Studente:** Virginia Foti  
+**Repo:** https://github.com/virginiafoti22/ItalianMealsApp
 **Ultimo aggiornamento:** YYYY-MM-DD
 
 ## Schermate implementate
@@ -11,9 +11,9 @@
 | Login          | ✅ / 🚧 | ![Login](./docs/screenshots/01-login.png)           |
 | Header profilo |         | ![Profilo](./docs/screenshots/02-profile.png)       |
 | Lista piatti   |         | ![Lista](./docs/screenshots/03-list.png)            |
-| Ricerca        |         | ![Ricerca](./docs/screenshots/04-search.png)        |
+| Ricerca        |  ✅    | ![Ricerca](./docs/screenshots/04-search.png)        |
 | Dettaglio      |         | ![Dettaglio](./docs/screenshots/05-detail.png)      |
-| Preferiti      |         | ![Preferiti](./docs/screenshots/06-favorites.png)   |
+| Preferiti      |   ✅   | ![Preferiti](./docs/screenshots/06-favorites.png)   |
 | Impostazioni   |         | ![Impostazioni](./docs/screenshots/07-settings.png) |
 | Errore + Retry |         | ![Errore](./docs/screenshots/08-error.png)          |
 | Deep link      |         | ![Deep link](./docs/screenshots/09-deeplink.png)    |

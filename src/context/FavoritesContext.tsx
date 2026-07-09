@@ -1,149 +1,121 @@
-import React from "react";
-import {
-  ActivityIndicator,
-  FlatList,
-  Image,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useFavorites } from "../context/FavoritesContext";
-import { fetchItalianMeals } from "../services/mealsApi";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
-interface MealSummary {
-  idMeal: string;
-  strMeal: string;
-  strMealThumb: string;
-}
+type FavoritesContextValue = {
+  favoriteIds: string[];
+  isFavoritesLoaded: boolean;
+  isFavorite: (mealId: string) => boolean;
+  toggleFavorite: (mealId: string) => void;
+  clearFavorites: () => void;
+};
 
-export function MealsScreen() {
-  const { favoriteIds, isLoading: favoritesLoading, isFavorite, toggleFavorite } =
-    useFavorites();
-  const [view, setView] = React.useState<"meals" | "favorites">("meals");
-  const [state, setState] = React.useState<{
-    status: "idle" | "loading" | "success" | "error";
-    items: MealSummary[];
-    message: string;
-  }>({
-    status: "idle",
-    items: [],
-    message: "",
-  });
+const FAVORITES_STORAGE_KEY = "@favorite_meals";
 
-  async function loadMeals() {
-    setState({ status: "loading", items: [], message: "" });
+const FavoritesContext = createContext<FavoritesContextValue | undefined>(
+  undefined
+);
+
+export function FavoritesProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [favoriteIds, setFavoriteIds] = useState<string[]>([]);
+  const [isFavoritesLoaded, setIsFavoritesLoaded] = useState(false);
+
+  useEffect(() => {
+    loadFavorites();
+  }, []);
+
+  useEffect(() => {
+    if (!isFavoritesLoaded) {
+      return;
+    }
+
+    persistFavorites(favoriteIds);
+  }, [favoriteIds, isFavoritesLoaded]);
+
+  async function loadFavorites() {
     try {
-      const data = await fetchItalianMeals();
-      setState({ status: "success", items: data, message: "" });
-    } catch {
-      setState({
-        status: "error",
-        items: [],
-        message: "Impossibile caricare i piatti.",
-      });
+      const stored = await AsyncStorage.getItem(FAVORITES_STORAGE_KEY);
+
+      if (!stored) {
+        setFavoriteIds([]);
+        return;
+      }
+
+      const parsed = JSON.parse(stored);
+
+      if (Array.isArray(parsed)) {
+        setFavoriteIds(parsed);
+      } else {
+        setFavoriteIds([]);
+      }
+    } catch (error) {
+      console.log("Errore caricamento preferiti:", error);
+      setFavoriteIds([]);
+    } finally {
+      setIsFavoritesLoaded(true);
     }
   }
 
-  React.useEffect(() => {
-    loadMeals();
-  }, []);
+  async function persistFavorites(nextFavoriteIds: string[]) {
+    try {
+      await AsyncStorage.setItem(
+        FAVORITES_STORAGE_KEY,
+        JSON.stringify(nextFavoriteIds)
+      );
+    } catch (error) {
+      console.log("Errore salvataggio preferiti:", error);
+    }
+  }
 
-  const visibleMeals =
-    view === "favorites"
-      ? state.items.filter((meal) => favoriteIds.includes(meal.idMeal))
-      : state.items;
-
-  if (favoritesLoading || state.status === "loading") {
-    return (
-      <SafeAreaView style={styles.centered}>
-        <ActivityIndicator />
-        <Text>Caricamento...</Text>
-      </SafeAreaView>
+  function toggleFavorite(mealId: string) {
+    setFavoriteIds((prev) =>
+      prev.includes(mealId)
+        ? prev.filter((id) => id !== mealId)
+        : [...prev, mealId]
     );
   }
 
-  if (state.status === "error") {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.error}>{state.message}</Text>
-        <Pressable style={styles.button} onPress={loadMeals}>
-          <Text style={styles.buttonText}>Retry</Text>
-        </Pressable>
-      </SafeAreaView>
-    );
+  function isFavorite(mealId: string) {
+    return favoriteIds.includes(mealId);
   }
+
+  function clearFavorites() {
+    setFavoriteIds([]);
+  }
+
+  const value = useMemo(
+    () => ({
+      favoriteIds,
+      isFavoritesLoaded,
+      isFavorite,
+      toggleFavorite,
+      clearFavorites,
+    }),
+    [favoriteIds, isFavoritesLoaded]
+  );
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>
-        {view === "meals" ? "Piatti italiani" : "I tuoi preferiti"}
-      </Text>
-      <View style={styles.tabs}>
-        <Pressable style={styles.tab} onPress={() => setView("meals")}>
-          <Text style={styles.tabText}>Lista</Text>
-        </Pressable>
-        <Pressable style={styles.tab} onPress={() => setView("favorites")}>
-          <Text style={styles.tabText}>Preferiti ({favoriteIds.length})</Text>
-        </Pressable>
-      </View>
-
-      {view === "favorites" && visibleMeals.length === 0 ? (
-        <Text>Nessun preferito ancora. Tocca ♡ su un piatto dalla lista.</Text>
-      ) : (
-        <FlatList
-          data={visibleMeals}
-          keyExtractor={(item) => item.idMeal}
-          renderItem={({ item }) => (
-            <View style={styles.row}>
-              <Image source={{ uri: item.strMealThumb }} style={styles.thumb} />
-              <Text style={styles.mealName} numberOfLines={2}>
-                {item.strMeal}
-              </Text>
-              <Pressable
-                style={styles.favButton}
-                onPress={() => toggleFavorite(item.idMeal)}
-              >
-                <Text style={styles.favText}>
-                  {isFavorite(item.idMeal) ? "♥" : "♡"}
-                </Text>
-              </Pressable>
-            </View>
-          )}
-        />
-      )}
-    </SafeAreaView>
+    <FavoritesContext.Provider value={value}>
+      {children}
+    </FavoritesContext.Provider>
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, padding: 16, gap: 12 },
-  centered: { flex: 1, padding: 16, gap: 8, justifyContent: "center" },
-  title: { fontSize: 22, fontWeight: "700" },
-  tabs: { flexDirection: "row", gap: 8 },
-  tab: { paddingVertical: 8, paddingHorizontal: 12, borderWidth: 1, borderRadius: 8 },
-  tabText: { fontWeight: "600" },
-  error: { color: "#B00020" },
-  button: {
-    alignSelf: "flex-start",
-    paddingVertical: 10,
-    paddingHorizontal: 16,
-    borderWidth: 1,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-  },
-  buttonText: { fontWeight: "600" },
-  row: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#ccc",
-  },
-  thumb: { width: 48, height: 48, borderRadius: 8 },
-  mealName: { flex: 1, fontWeight: "600" },
-  favButton: { padding: 8, borderWidth: 1, borderRadius: 8 },
-  favText: { fontSize: 18 },
-});
+export function useFavorites() {
+  const context = useContext(FavoritesContext);
+
+  if (!context) {
+    throw new Error("useFavorites deve essere usato dentro FavoritesProvider");
+  }
+
+  return context;
+}

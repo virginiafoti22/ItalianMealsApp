@@ -1,20 +1,16 @@
-/**
- * Login mock - lab 11 + progetto finale.
- */
 
-/** Utente autenticato (senza password in memoria) */
 export interface AuthUser {
   email: string;
   name: string;
   avatarUri: string;
 }
 
-/** Utente demo con password - solo per confronto in validateLogin */
+
 export interface MockUser extends AuthUser {
   password: string;
 }
 
-/** 3 utenti demo del corso */
+
 export const MOCK_USERS: MockUser[] = [
   {
     email: "mario.rossi@student.it",
@@ -36,7 +32,6 @@ export const MOCK_USERS: MockUser[] = [
   },
 ];
 
-/** Valida credenziali mock - lab 11 */
 export function validateLogin(email: string, password: string,): AuthUser | undefined {
   const match = MOCK_USERS.find(
     (user) => user.email === email.trim() && user.password === password,
