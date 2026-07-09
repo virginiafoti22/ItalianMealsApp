@@ -9,8 +9,8 @@
 | Schermata      | Stato   | Screenshot                                          |
 | -------------- | ------- | --------------------------------------------------- |
 | Login          | ✅ / 🚧 | ![Login](./docs/screenshots/01-login.png)           |
-| Header profilo |         | ![Profilo](./docs/screenshots/02-profile.png)       |
-| Lista piatti   |         | ![Lista](./docs/screenshots/03-list.png)            |
+| Header profilo |  ✅      | ![Profilo](./docs/screenshots/02-profile.png)       |
+| Lista piatti   |  ✅      | ![Lista](./docs/screenshots/03-list.png)            |
 | Ricerca        |  ✅    | ![Ricerca](./docs/screenshots/04-search.png)        |
 | Dettaglio      |         | ![Dettaglio](./docs/screenshots/05-detail.png)      |
 | Preferiti      |   ✅   | ![Preferiti](./docs/screenshots/06-favorites.png)   |
