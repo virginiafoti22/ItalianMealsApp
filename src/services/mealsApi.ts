@@ -13,3 +13,45 @@ export async function fetchMealById(id: string) {
   const data = await res.json();
   return data.meals?.[0] ?? null;
 }
+
+export interface MealDetails {
+  idMeal: string;
+  strMeal: string;
+  strMealThumb: string;
+  strCategory: string;
+  strArea: string;
+  strInstructions: string;
+  ingredients: { ingredient: string; measure?: string }[];
+}
+
+export async function fetchMealDetailsById(id: string): Promise<MealDetails> {
+  const meal = await fetchMealById(id);
+
+  if (!meal) {
+    throw new Error("Meal not found");
+  }
+
+  const ingredients: { ingredient: string; measure?: string }[] = [];
+
+  for (let index = 1; index <= 20; index += 1) {
+    const ingredient = meal[`strIngredient${index}`]?.trim();
+    const measure = meal[`strMeasure${index}`]?.trim();
+
+    if (ingredient) {
+      ingredients.push({
+        ingredient,
+        measure: measure || undefined,
+      });
+    }
+  }
+
+  return {
+    idMeal: meal.idMeal,
+    strMeal: meal.strMeal,
+    strMealThumb: meal.strMealThumb,
+    strCategory: meal.strCategory,
+    strArea: meal.strArea,
+    strInstructions: meal.strInstructions,
+    ingredients,
+  };
+}

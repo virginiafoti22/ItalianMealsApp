@@ -10,11 +10,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
-import {
-  fetchItalianMeals,
-  fetchMealDetailsById,
-  MealDetails,
-} from "../services/mealsApi";
+import { fetchItalianMeals, fetchMealById } from "../services/mealsApi";
 import { useFavorites } from "../context/FavoritesContext";
 import { useAppTheme } from "../context/ThemeContext";
 
@@ -22,6 +18,16 @@ interface MealSummary {
   idMeal: string;
   strMeal: string;
   strMealThumb: string;
+}
+
+interface MealDetails {
+  idMeal: string;
+  strMeal: string;
+  strMealThumb: string;
+  strCategory: string;
+  strArea: string;
+  strInstructions: string;
+  ingredients: { ingredient: string; measure?: string }[];
 }
 
 export function HomeScreen({ navigation }: any) {
@@ -151,8 +157,7 @@ export function HomeScreen({ navigation }: any) {
             const active = isFavorite(item.idMeal);
 
             return (
-              <Pressable
-                onPress={() => handleOpenMealDetails(item.idMeal)}
+              <View
                 style={[
                   styles.row,
                   {
@@ -162,7 +167,10 @@ export function HomeScreen({ navigation }: any) {
                   },
                 ]}
               >
-                <View style={styles.rowContent}>
+                <Pressable
+                  style={styles.rowContent}
+                  onPress={() => handleOpenMealDetails(item.idMeal)}
+                >
                   <Image
                     source={{ uri: item.strMealThumb }}
                     style={styles.thumb}
@@ -174,7 +182,7 @@ export function HomeScreen({ navigation }: any) {
                   >
                     {item.strMeal}
                   </Text>
-                </View>
+                </Pressable>
 
                 <Pressable
                   style={[
@@ -196,7 +204,7 @@ export function HomeScreen({ navigation }: any) {
                     {active ? "♥" : "♡"}
                   </Text>
                 </Pressable>
-              </Pressable>
+              </View>
             );
           }}
         />
@@ -207,9 +215,7 @@ export function HomeScreen({ navigation }: any) {
           animationType="slide"
           onRequestClose={handleCloseMealDetails}
         >
-          <View
-            style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}
-          >
+          <View style={[styles.modalOverlay, { backgroundColor: theme.overlay }]}>
             <View
               style={[
                 styles.detailsModalCard,
@@ -223,9 +229,7 @@ export function HomeScreen({ navigation }: any) {
                 onPress={handleCloseMealDetails}
                 style={styles.detailsCloseButton}
               >
-                <Text
-                  style={[styles.detailsCloseText, { color: theme.text }]}
-                >
+                <Text style={[styles.detailsCloseText, { color: theme.text }]}>
                   Chiudi
                 </Text>
               </Pressable>
@@ -242,9 +246,7 @@ export function HomeScreen({ navigation }: any) {
                   keyExtractor={(_, index) => `${selectedMeal.idMeal}-${index}`}
                   showsVerticalScrollIndicator={false}
                   renderItem={({ item }) => (
-                    <Text
-                      style={[styles.ingredientItem, { color: theme.text }]}
-                    >
+                    <Text style={[styles.ingredientItem, { color: theme.text }]}>
                       • {item.ingredient}
                       {item.measure ? ` - ${item.measure}` : ""}
                     </Text>
@@ -255,46 +257,23 @@ export function HomeScreen({ navigation }: any) {
                         source={{ uri: selectedMeal.strMealThumb }}
                         style={styles.detailsImage}
                       />
-
-                      <Text
-                        style={[styles.detailsTitle, { color: theme.text }]}
-                      >
+                      <Text style={[styles.detailsTitle, { color: theme.text }]}>
                         {selectedMeal.strMeal}
                       </Text>
-
-                      <Text
-                        style={[styles.detailsMeta, { color: theme.subtext }]}
-                      >
+                      <Text style={[styles.detailsMeta, { color: theme.subtext }]}>
                         {selectedMeal.strCategory} • {selectedMeal.strArea}
                       </Text>
-
-                      <Text
-                        style={[
-                          styles.detailsSectionTitle,
-                          { color: theme.text },
-                        ]}
-                      >
+                      <Text style={[styles.detailsSectionTitle, { color: theme.text }]}>
                         Ingredienti
                       </Text>
                     </View>
                   }
                   ListFooterComponent={
                     <View style={styles.instructionsBlock}>
-                      <Text
-                        style={[
-                          styles.detailsSectionTitle,
-                          { color: theme.text },
-                        ]}
-                      >
+                      <Text style={[styles.detailsSectionTitle, { color: theme.text }]}>
                         Preparazione
                       </Text>
-
-                      <Text
-                        style={[
-                          styles.instructionsText,
-                          { color: theme.subtext },
-                        ]}
-                      >
+                      <Text style={[styles.instructionsText, { color: theme.subtext }]}>
                         {selectedMeal.strInstructions}
                       </Text>
                     </View>
@@ -444,3 +423,35 @@ const styles = StyleSheet.create({
     lineHeight: 24,
   },
 });
+
+async function fetchMealDetailsById(mealId: string): Promise<MealDetails> {
+  const meal = await fetchMealById(mealId);
+
+  if (!meal) {
+    throw new Error("Meal not found");
+  }
+
+  const ingredients: { ingredient: string; measure?: string }[] = [];
+
+  for (let index = 1; index <= 20; index += 1) {
+    const ingredient = (meal as any)[`strIngredient${index}`]?.trim();
+    const measure = (meal as any)[`strMeasure${index}`]?.trim();
+
+    if (ingredient) {
+      ingredients.push({
+        ingredient,
+        measure: measure || undefined,
+      });
+    }
+  }
+
+  return {
+    idMeal: meal.idMeal,
+    strMeal: meal.strMeal,
+    strMealThumb: meal.strMealThumb,
+    strCategory: meal.strCategory,
+    strArea: meal.strArea,
+    strInstructions: meal.strInstructions,
+    ingredients,
+  };
+}
